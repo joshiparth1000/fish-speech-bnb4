@@ -22,14 +22,16 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# This fork's recommended installer/startup flow is Conda-based.
+# Use Miniforge instead of Anaconda Miniconda to avoid Anaconda ToS prompts
+# and default to conda-forge.
 ENV CONDA_DIR=/opt/conda
 ENV PATH=${CONDA_DIR}/bin:${PATH}
 ENV CONDA_EXE=${CONDA_DIR}/bin/conda
 
-RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh \
-    && bash /tmp/miniconda.sh -b -p ${CONDA_DIR} \
-    && rm -f /tmp/miniconda.sh \
+RUN wget -q https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -O /tmp/miniforge.sh \
+    && bash /tmp/miniforge.sh -b -p ${CONDA_DIR} \
+    && rm -f /tmp/miniforge.sh \
+    && conda config --system --set channel_priority strict \
     && conda clean -afy
 
 WORKDIR /app
@@ -39,8 +41,6 @@ RUN git clone https://github.com/groxaxo/fish-speech-int4-patch.git /app
 ENV ENV_NAME=fish-speech-bnb4
 ENV PYTHON_VERSION=3.12
 
-# Create the same kind of dedicated Conda environment expected by this fork,
-# but do NOT download model weights into the image. The model is mounted from /data.
 RUN conda create -y -n ${ENV_NAME} python=${PYTHON_VERSION} \
     && conda run -n ${ENV_NAME} python -m pip install --upgrade pip setuptools wheel \
     && conda run -n ${ENV_NAME} python -m pip install -e ".[bnb]" --extra-index-url https://download.pytorch.org/whl/cu128 \
@@ -56,6 +56,4 @@ ENV IDLE_TIMEOUT_SECONDS=300
 ENV CUDA_VISIBLE_DEVICES=0
 ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-# Use the direct API entrypoint recommended by the model/project docs.
-# This avoids the startup script's Conda detection edge cases while keeping the same bnb4/half path.
 CMD ["bash", "-lc", "PYTHONPATH=/app conda run --no-capture-output -n ${ENV_NAME} python tools/api_server.py --checkpoint-path ${CHECKPOINT_DIR} --bnb4 --half --host ${HOST} --port ${PORT}"]
