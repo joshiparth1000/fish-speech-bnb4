@@ -11,7 +11,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: your-image-name
+  IMAGE_NAME: fish-speech-bnb4
 
 jobs:
   build-and-push:
