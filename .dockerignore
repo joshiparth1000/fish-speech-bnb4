@@ -1,0 +1,8 @@
+.git
+__pycache__
+*.pyc
+.DS_Store
+checkpoints
+models
+output
+.cache
